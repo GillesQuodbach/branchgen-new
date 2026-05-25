@@ -1,6 +1,6 @@
 use thiserror::Error;
 #[derive(Error, Debug)]
-enum AppError {
+pub enum AppError {
     #[error("Empty field : {0}")]
     EmptyField(String),
     #[error("Config error : {0}")]
