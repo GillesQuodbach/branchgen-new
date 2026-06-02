@@ -8,6 +8,9 @@ mod error;
 mod config;
 mod config_template;
 mod cli;
+mod state;
+mod actions;
+mod generator;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
