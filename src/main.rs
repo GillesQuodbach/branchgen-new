@@ -11,6 +11,7 @@ mod cli;
 mod state;
 mod actions;
 mod generator;
+mod storage;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
