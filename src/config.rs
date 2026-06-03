@@ -138,7 +138,7 @@ pub fn generate_default_config() -> Result<(), AppError> {
 //
 //     if config_file_exists {
 //         // read config file
-//         return Ok(read_config_file()?);
+//         return Ok(read_config_file()?format);
 //     }
 //
 //     let input_team: String = Input::new()
