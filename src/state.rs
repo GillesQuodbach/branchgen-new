@@ -20,6 +20,7 @@ pub struct FormState {
     pub user_inputs: HashMap<String, String>,
     pub selected_field: usize,
     pub select_input_position: usize,
+    pub cursor_position: usize,
 }
 
 pub struct GeneratedResult {

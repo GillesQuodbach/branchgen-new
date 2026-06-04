@@ -11,5 +11,4 @@ pub fn create_branch(branch_name: &str) -> Result<(), AppError> {
         Err(AppError::Git(error_msg))
 
     }
-
 }
