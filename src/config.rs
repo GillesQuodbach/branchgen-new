@@ -18,6 +18,7 @@ pub struct FieldConfig {
     #[serde(rename = "type")]
     pub field_type: FieldType,
     pub required: bool,
+    pub values: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -27,7 +28,7 @@ pub struct FormatConfig {
     pub pr_title: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum FieldType {
     Text,

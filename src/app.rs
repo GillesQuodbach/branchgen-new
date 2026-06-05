@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::io::stdout;
-use crate::config::AppConfig;
+use crate::config::{AppConfig, FieldType};
 use crate::error::AppError;
 use crate::state::{AppState, FormState, Step};
 use crossterm::{execute, terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}};
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use ratatui::{Terminal, backend::CrosstermBackend };
 use crate::actions::{update, Action};
+use crate::ui;
 
 pub struct App {
     pub state: AppState,
@@ -14,11 +15,21 @@ pub struct App {
 
 impl App {
     pub fn new(config: AppConfig) -> Self {
+        let mut user_inputs = HashMap::new();
+        for field in &config.fields {
+            if field.field_type == FieldType::Select {
+                if let Some(values) = &field.values{
+                    if let Some(first) = values.first(){
+                        user_inputs.insert(field.key.clone(), first.clone());
+                    }
+                }
+            }
+        }
         App {
             state: AppState {
-                step: Step::SelectType,
+                step: Step::FillFields,
                 form: FormState {
-                    user_inputs: HashMap::new(),
+                    user_inputs,
                     selected_field: 0,
                     select_input_position: 0,
                     cursor_position: 0,
@@ -26,6 +37,8 @@ impl App {
                 result: None,
                 config,
                 should_quit: false,
+                history_scroll: 0,
+                history_scroll_limitation: 0,
 
             }
         }
@@ -43,8 +56,8 @@ impl App {
 
         //boucle principale
         loop {
-            terminal.draw(|f| { //TODO: ui::render(f, &self.state)
-            });
+            terminal.draw(|f| { ui::render(f, &self.state)
+            })?;
 
             if let Event::Key(key) = crossterm::event::read()? {
                 let action = handle_key(key);
@@ -57,7 +70,6 @@ impl App {
         }
 
         // nettoyage du terminal
-
         disable_raw_mode()?;
         execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
         Ok(())
@@ -77,6 +89,7 @@ pub fn handle_key(key: KeyEvent) -> Action {
         KeyCode::Backspace      => Action::Backspace,
         KeyCode::Delete         => Action::Delete,
         KeyCode::Char(c)   => Action::InputCharacter(c),
-        _                       => Action::Quit, // temporaire
+        KeyCode::Tab            => Action::TabPress,
+        _                       => Action::None,
     }
 }

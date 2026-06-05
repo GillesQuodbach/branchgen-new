@@ -14,6 +14,13 @@ pub const DEFAULT_CONFIG: &str = r#"
 # type     = "text"
 # required = true
 
+# [[fields]]
+# key    = "type"
+# label  = "Type"
+# type   = "select"
+# values = ["feat", "fix", "refactor", "docs", "chore"]
+# required = true
+
 # [formats]
 # branch   = "{type}/{ticket}-{description}"
 # commit   = "{type}: {description}"

@@ -7,10 +7,12 @@ pub struct AppState {
     pub result: Option<GeneratedResult>,
     pub config: AppConfig,
     pub should_quit: bool,
+    pub history_scroll: usize,
+    pub history_scroll_limitation: usize,
 }
 
+#[derive(PartialEq)]
 pub enum Step {
-    SelectType,
     FillFields,
     ShowResults,
     History
