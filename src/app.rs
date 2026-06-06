@@ -89,7 +89,8 @@ pub fn handle_key(key: KeyEvent) -> Action {
         KeyCode::Backspace      => Action::Backspace,
         KeyCode::Delete         => Action::Delete,
         KeyCode::Char(c)   => Action::InputCharacter(c),
-        KeyCode::Tab            => Action::TabPress,
+        KeyCode::Tab            => Action::NextTab,
+        KeyCode::BackTab        => Action::PrevTab,
         _                       => Action::None,
     }
 }

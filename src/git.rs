@@ -12,3 +12,7 @@ pub fn create_branch(branch_name: &str) -> Result<(), AppError> {
 
     }
 }
+
+pub fn is_git_repo() -> bool {
+    std::path::Path::new(".git").exists()
+}

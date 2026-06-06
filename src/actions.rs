@@ -19,7 +19,8 @@ pub enum Action {
     CreateBranch,
     InputCharacter(char),
     None,
-    TabPress,
+    NextTab,
+    PrevTab,
     HistoryLoaded(usize),
 }
 
@@ -179,11 +180,30 @@ pub fn update(state: &mut AppState, action:Action) {
             }
         }
         Action::None => {}
-        Action::TabPress => {
+        Action::NextTab => {
             state.step = match state.step {
+                Step::FillFields => Step::ShowResults,
+                Step::ShowResults => Step::History,
+                Step::History => Step::FillFields,
+            };
+            // charge le total dans history pour la limite du scroll
+            if state.step == Step::History {
+                let history = load_history().unwrap_or_default();
+                state.history_scroll = history.len() * 5;
+                state.history_scroll = 0;
+            }
+        }
+        Action::PrevTab => {
+            state.step = match state.step {
+                Step::FillFields => Step::History,
                 Step::History => Step::ShowResults,
                 Step::ShowResults => Step::FillFields,
-                Step::FillFields => Step::FillFields,
+            };
+            // charge le total dans history pour la limite du scroll
+            if state.step == Step::History {
+                let history = load_history().unwrap_or_default();
+                state.history_scroll = history.len() * 5;
+                state.history_scroll = 0;
             }
         }
         Action::HistoryLoaded(total) => {

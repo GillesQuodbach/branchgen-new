@@ -6,4 +6,7 @@ use clap::Parser;
 pub struct Args {
     #[arg(long, help = "Setup a default config file")]
     pub init: bool,
+
+    #[arg(default_value = ".")]
+    pub path: String,
 }

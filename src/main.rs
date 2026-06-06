@@ -18,6 +18,13 @@ mod ui;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+    // on recupere le repertoire actuel
+    std::env::set_current_dir(&args.path)?;
+
+    if !git::is_git_repo() {
+        eprintln!("Not in a git repository. Please run branchgen from a git repo");
+        return Ok(());
+    }
 
     if args.init {
         generate_default_config()?;

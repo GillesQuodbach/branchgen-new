@@ -20,6 +20,9 @@ pub fn render_results(frame: &mut Frame, state: &AppState) {
 
         let block = Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Results"));
         frame.render_widget(block, content_area);
+    } else {
+        let block = Paragraph::new("No results yet. Fill the form and press Enter.").block(Block::default().borders(Borders::ALL).title("Results"));
+        frame.render_widget(block, content_area);
     }
 
     let status = Paragraph::new("↑↓ navigate | Enter next | q quitter");
