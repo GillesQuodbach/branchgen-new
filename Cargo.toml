@@ -12,3 +12,5 @@ toml       = "0.8"
 thiserror  = "1"
 clap       = { version = "4", features = ["derive"] }
 directories = "6.0.0"
+cli-clipboard = "0.4"
+chrono = "0.4"

@@ -6,7 +6,6 @@ use crate::error::AppError;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct History {
-    pub id: usize,
     pub date: String,
     pub branch: String,
     pub commit: String,

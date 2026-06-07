@@ -39,7 +39,8 @@ impl App {
                 should_quit: false,
                 history_scroll: 0,
                 history_scroll_limitation: 0,
-
+                git_message: None,
+                result_selected_line: 0,
             }
         }
     }
@@ -60,7 +61,7 @@ impl App {
             })?;
 
             if let Event::Key(key) = crossterm::event::read()? {
-                let action = handle_key(key);
+                let action = handle_key(key, &self.state.step);
                 update(&mut self.state, action);
             }
 
@@ -78,9 +79,11 @@ impl App {
 
 }
 
-pub fn handle_key(key: KeyEvent) -> Action {
+pub fn handle_key(key: KeyEvent, step: &Step) -> Action {
     match key.code {
         KeyCode::Char('q')      => Action::Quit,
+        KeyCode::Char('b') if *step == Step::ShowResults        => Action::CreateBranch,
+        KeyCode::Char('c') if *step == Step::ShowResults        => Action::CopyLineToClipboard,
         KeyCode::Up             => Action::MoveUp,
         KeyCode::Down           => Action::MoveDown,
         KeyCode::Left           => Action::MoveLeft,

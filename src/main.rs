@@ -1,8 +1,9 @@
-use std::env::args;
+use std::io::stdout;
 use clap::Parser;
 use crate::app::App;
 use crate::cli::Args;
 use crate::config::{generate_default_config, load_config};
+use std::panic;
 
 mod app;
 mod error;
@@ -25,6 +26,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("Not in a git repository. Please run branchgen from a git repo");
         return Ok(());
     }
+
+    panic::set_hook(Box::new(|panic_info| {
+        // on restore le terminal
+        let _ = crossterm::terminal::disable_raw_mode();
+        let _ = crossterm::execute!(
+            stdout(),
+            crossterm::terminal::LeaveAlternateScreen,
+        );
+        // on affiche l'erreur
+        eprintln!("Panic: {:?}", panic_info);
+    }));
+
 
     if args.init {
         generate_default_config()?;

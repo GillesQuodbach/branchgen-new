@@ -9,6 +9,8 @@ pub struct AppState {
     pub should_quit: bool,
     pub history_scroll: usize,
     pub history_scroll_limitation: usize,
+    pub git_message: Option<String>,
+    pub result_selected_line: usize,
 }
 
 #[derive(PartialEq)]
