@@ -46,27 +46,18 @@ pub fn render_history(frame: &mut Frame, state: &AppState) {
                 ]));
                 line_index += 1;
             }
-            lines.push(Line::from(vec![
-                Span::styled("  date     : ", Style::default().fg(Theme::TEXT_MUTED)),
-                Span::styled(&*item.date, Style::default().fg(Theme::TEXT)),
-            ]));
-            lines.push(Line::from(vec![
-                Span::styled("  branch   : ", Style::default().fg(Theme::TEXT_MUTED)),
-                Span::styled(&*item.branch, Style::default().fg(Theme::HISTORY_BRANCH)),
-            ]));
-            lines.push(Line::from(vec![
-                Span::styled("  commit   : ", Style::default().fg(Theme::TEXT_MUTED)),
-                Span::styled(&*item.commit, Style::default().fg(Theme::HISTORY_COMMIT)),
-            ]));
-            lines.push(Line::from(vec![
-                Span::styled("  pr_title : ", Style::default().fg(Theme::TEXT_MUTED)),
-                Span::styled(&*item.pr_title, Style::default().fg(Theme::AMBER)),
-            ]));
         }
     }
 
+    let visible_height = content_area.height.saturating_sub(2) as usize;
+    let scroll_offset = if state.history_selected_line < visible_height {
+        0
+    } else {
+        state.history_selected_line - visible_height + 1
+    };
+
     let mut scrollbar_state = ScrollbarState::new(lines.len())
-        .position(state.history_scroll);
+        .position(scroll_offset);
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -77,7 +68,7 @@ pub fn render_history(frame: &mut Frame, state: &AppState) {
 
     let paragraph = Paragraph::new(Text::from(lines))
         .block(block)
-        .scroll((state.history_scroll as u16, 0));
+        .scroll((scroll_offset as u16, 0));
 
     frame.render_widget(paragraph, content_area);
     frame.render_stateful_widget(
