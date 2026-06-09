@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use crate::config::FormatConfig;
 use crate::state::{FormState, GeneratedResult};
 
@@ -30,7 +30,7 @@ pub fn generate_result(form: &FormState, formats: &FormatConfig) -> GeneratedRes
     generated_result
 }
 
-pub fn resolve_template(template: &str, values: &HashMap<String, String>) -> String {
+pub fn resolve_template(template: &str, values: &IndexMap<String, String>) -> String {
     let mut result = template.to_string();
     for (key, value) in values {
             let placeholder = format!("{{{}}}", key);

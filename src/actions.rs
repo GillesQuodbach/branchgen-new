@@ -70,7 +70,7 @@ pub fn update(state: &mut AppState, action: Action) {
                 }
                 _ => {
                     let nb_fields = state.config.fields.len();
-                    if state.form.selected_field < nb_fields - 1 {
+                    if state.form.selected_field < nb_fields {
                         state.form.selected_field += 1;
                         state.form.cursor_position = 0;
                         state.form.select_input_position = 0;
@@ -80,6 +80,7 @@ pub fn update(state: &mut AppState, action: Action) {
         }
 
         Action::MoveLeft => {
+            if state.form.selected_field < state.config.fields.len() {
             let field = &state.config.fields[state.form.selected_field];
             match field.field_type {
                 FieldType::Select => {
@@ -88,61 +89,67 @@ pub fn update(state: &mut AppState, action: Action) {
                     let value = field.values.as_ref().unwrap()[state.form.select_input_position].clone();
                     state.form.user_inputs.insert(field.key.clone(), value);
                 }
-                _ => {
-                    state.form.selected_field += 1;
-                    state.form.cursor_position = 0;
-                }
+                _ => {}
             }
         }
+    }
 
         Action::MoveRight => {
-            let field = &state.config.fields[state.form.selected_field];
-            match field.field_type {
-                FieldType::Select => {
-                    let len = field.values.as_ref().map(|v| v.len()).unwrap_or(0);
-                    state.form.select_input_position = (state.form.select_input_position + len - 1) % len;
-                    let value = field.values.as_ref().unwrap()[state.form.select_input_position].clone();
-                    state.form.user_inputs.insert(field.key.clone(), value);
-                }
-                _ => {
-                    if state.form.cursor_position > 0 {
-                        state.form.cursor_position -= 1;
+            if state.form.selected_field < state.config.fields.len() {
+                let field = &state.config.fields[state.form.selected_field];
+                match field.field_type {
+                    FieldType::Select => {
+                        let len = field.values.as_ref().map(|v| v.len()).unwrap_or(0);
+                        state.form.select_input_position = (state.form.select_input_position + len - 1) % len;
+                        let value = field.values.as_ref().unwrap()[state.form.select_input_position].clone();
+                        state.form.user_inputs.insert(field.key.clone(), value);
+                    }
+                    _ => {
+                        if state.form.cursor_position > 0 {
+                            state.form.cursor_position -= 1;
+                        }
                     }
                 }
             }
         }
 
         Action::InputCharacter(character) => {
-            let field = &state.config.fields[state.form.selected_field];
-            match field.field_type {
-                FieldType::Select => {}
-                FieldType::Number => {
-                    if character.is_ascii_digit() {
+            if state.form.selected_field < state.config.fields.len() {
+                let field = &state.config.fields[state.form.selected_field];
+                match field.field_type {
+                    FieldType::Select => {}
+                    FieldType::Number => {
+                        if character.is_ascii_digit() {
+                            let key = field.key.clone();
+                            let value = state.form.user_inputs.entry(key).or_insert(String::new());
+                            value.push(character);
+                        }
+                    }
+                    FieldType::Text => {
                         let key = field.key.clone();
                         let value = state.form.user_inputs.entry(key).or_insert(String::new());
                         value.push(character);
                     }
                 }
-                FieldType::Text => {
-                    let key = field.key.clone();
-                    let value = state.form.user_inputs.entry(key).or_insert(String::new());
-                    value.push(character);
-                }
             }
         }
 
         Action::Backspace => {
-            let key = &state.config.fields[state.form.selected_field].key;
-            if let Some(value) = state.form.user_inputs.get_mut(key) {
-                value.pop();
+            if state.form.selected_field < state.config.fields.len() {
+                let key = &state.config.fields[state.form.selected_field].key;
+                if let Some(value) = state.form.user_inputs.get_mut(key) {
+                    value.pop();
+                }
             }
         }
 
         Action::Delete => {
-            let key = &state.config.fields[state.form.selected_field].key;
-            if let Some(value) = state.form.user_inputs.get_mut(key) {
-                if state.form.cursor_position < value.len() {
-                    value.remove(state.form.cursor_position);
+            if state.form.selected_field < state.config.fields.len() {
+                let key = &state.config.fields[state.form.selected_field].key;
+                if let Some(value) = state.form.user_inputs.get_mut(key) {
+                    if state.form.cursor_position < value.len() {
+                        value.remove(state.form.cursor_position);
+                    }
                 }
             }
         }
@@ -168,18 +175,9 @@ pub fn update(state: &mut AppState, action: Action) {
         Action::Enter => {
             match state.step {
                 Step::FillFields => {
-                    let last_field = state.config.fields.len() - 1;
+                    let last_field = state.config.fields.len();
                     if state.form.selected_field == last_field {
                         let result = generate_result(&state.form, &state.config.formats);
-                        state.result = Some(result);
-                        state.step = Step::ShowResults;
-                    } else {
-                        state.form.selected_field += 1;
-                        state.form.cursor_position = 0;
-                    }
-                }
-                Step::ShowResults => {
-                    if let Some(result) = &state.result {
                         let date = Local::now().format("%d-%m-%Y").to_string();
                         let entry = History {
                             date,
@@ -191,7 +189,11 @@ pub fn update(state: &mut AppState, action: Action) {
                         let history = load_history().unwrap_or_default();
                         state.history_scroll_limitation = compute_history_total(history.len());
                         state.history_scroll = 0;
-                        state.step = Step::History;
+                        state.result = Some(result);
+                        state.step = Step::ShowResults;
+                    } else {
+                        state.form.selected_field += 1;
+                        state.form.cursor_position = 0;
                     }
                 }
                 _ => {}

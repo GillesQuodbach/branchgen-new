@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use std::io::stdout;
 use crate::config::{AppConfig, FieldType};
 use crate::error::AppError;
 use crate::state::{AppState, FormState, Step};
 use crossterm::{execute, terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}};
-use crossterm::event::{Event, KeyCode, KeyEvent};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
+use indexmap::IndexMap;
 use ratatui::{Terminal, backend::CrosstermBackend };
 use crate::actions::{update, Action};
 use crate::ui;
@@ -15,7 +15,7 @@ pub struct App {
 
 impl App {
     pub fn new(config: AppConfig) -> Self {
-        let mut user_inputs = HashMap::new();
+        let mut user_inputs = IndexMap::new();
         for field in &config.fields {
             if field.field_type == FieldType::Select {
                 if let Some(values) = &field.values{
@@ -61,8 +61,12 @@ impl App {
             })?;
 
             if let Event::Key(key) = crossterm::event::read()? {
+                // Windows envoie Press + Release, on filtre pour n'avoir que Press
+                // sinon bug de navigation
+                if key.kind == KeyEventKind::Press {
                 let action = handle_key(key, &self.state.step);
                 update(&mut self.state, action);
+                }
             }
 
             if self.state.should_quit {
@@ -92,22 +96,8 @@ pub fn handle_key(key: KeyEvent, step: &Step) -> Action {
         KeyCode::Backspace      => Action::Backspace,
         KeyCode::Delete         => Action::Delete,
         KeyCode::Char(c)   => Action::InputCharacter(c),
-        KeyCode::Tab            => tab_action(),
-        KeyCode::BackTab        => backtab_action(),
+        KeyCode::Tab            => Action::NextTab,
+        KeyCode::BackTab        => Action::PrevTab,
         _                       => Action::None,
     }
-}
-
-fn tab_action() -> Action {
-    #[cfg(target_os = "windows")]
-    return Action::PrevTab;
-    #[cfg(not(target_os = "windows"))]
-    return Action::NextTab;
-}
-
-fn backtab_action() -> Action {
-    #[cfg(target_os = "windows")]
-    return Action::NextTab;
-    #[cfg(not(target_os = "windows"))]
-    return Action::PrevTab;
 }

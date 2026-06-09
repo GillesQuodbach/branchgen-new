@@ -1,3 +1,4 @@
+
 use crate::config::FieldType;
 use ratatui::Frame;
 use ratatui::style::{Modifier, Style};
@@ -15,7 +16,7 @@ pub fn render_fields(frame: &mut Frame, state: &AppState) {
     let (tabs_area, content_area, status_area) = base_layout(frame);
     render_tabs(frame, tabs_area, &state.step);
 
-    let items: Vec<ListItem> = state.config.fields
+    let mut items: Vec<ListItem> = state.config.fields
         .iter()
         .enumerate()
         .map(|(i, field)| {
@@ -63,6 +64,20 @@ pub fn render_fields(frame: &mut Frame, state: &AppState) {
             ListItem::new(line).style(style)
         })
         .collect();
+
+    let is_validate = state.form.selected_field == state.config.fields.len();
+    items.push(ListItem::new(Line::from(vec![Span::styled(" [ Générer ]",
+                                                          if is_validate {
+                                                              Style::default()
+                                                                  .fg(Theme::BG)
+                                                                  .bg(Theme::ACCENT)
+                                                                  .add_modifier(Modifier::BOLD)
+                                                          } else {
+                                                              Style::default().fg(Theme::ACCENT)
+                                                          }
+
+    )
+    ])));
 
     let block = Block::default()
         .borders(Borders::ALL)

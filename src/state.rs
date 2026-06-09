@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use crate::config::AppConfig;
 
 pub struct AppState {
@@ -21,7 +21,7 @@ pub enum Step {
 }
 
 pub struct FormState {
-    pub user_inputs: HashMap<String, String>,
+    pub user_inputs: IndexMap<String, String>,
     pub selected_field: usize,
     pub select_input_position: usize,
     pub cursor_position: usize,
