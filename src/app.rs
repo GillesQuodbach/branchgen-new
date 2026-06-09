@@ -41,6 +41,7 @@ impl App {
                 history_scroll_limitation: 0,
                 git_message: None,
                 result_selected_line: 0,
+                history_selected_line: 0,
             }
         }
     }
@@ -87,7 +88,8 @@ pub fn handle_key(key: KeyEvent, step: &Step) -> Action {
     match key.code {
         KeyCode::Char('q')      => Action::Quit,
         KeyCode::Char('b') if *step == Step::ShowResults        => Action::CreateBranch,
-        KeyCode::Char('c') if *step == Step::ShowResults        => Action::CopyLineToClipboard,
+        KeyCode::Char('c') if *step == Step::ShowResults        => Action::CopyLineFromResults,
+        KeyCode::Char('c') if *step == Step::History        => Action::CopyLineFromHistory,
         KeyCode::Up             => Action::MoveUp,
         KeyCode::Down           => Action::MoveDown,
         KeyCode::Left           => Action::MoveLeft,

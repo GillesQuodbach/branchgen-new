@@ -12,6 +12,7 @@ pub fn render_history(frame: &mut Frame, state: &AppState) {
 
     let history = load_history().unwrap_or_default();
     let mut lines: Vec<Line> = vec![];
+    let mut line_index = 0usize;
 
     if history.is_empty() {
         lines.push(Line::from(Span::styled(
@@ -25,6 +26,25 @@ pub fn render_history(frame: &mut Frame, state: &AppState) {
                     "  ─────────────────────────────────────",
                     Style::default().fg(Theme::BORDER),
                 )));
+                line_index += 1;
+            }
+
+            for (field_index, (label, value, color)) in [
+                ("  date     : ", item.date.as_str(),     Theme::TEXT),
+                ("  branch   : ", item.branch.as_str(),   Theme::HISTORY_BRANCH),
+                ("  commit   : ", item.commit.as_str(),   Theme::HISTORY_COMMIT),
+                ("  pr_title : ", item.pr_title.as_str(), Theme::AMBER),
+            ].iter().enumerate() {
+                let is_selected = line_index == state.history_selected_line;
+                lines.push(Line::from(vec![
+                    Span::styled(*label, Style::default().fg(Theme::TEXT_MUTED)),
+                    Span::styled(*value, if is_selected {
+                        Style::default().fg(Theme::BG).bg(*color).add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(*color)
+                    }),
+                ]));
+                line_index += 1;
             }
             lines.push(Line::from(vec![
                 Span::styled("  date     : ", Style::default().fg(Theme::TEXT_MUTED)),
@@ -74,6 +94,8 @@ pub fn render_history(frame: &mut Frame, state: &AppState) {
         Span::styled("Next  ", Style::default().fg(Theme::TEXT_MUTED)),
         Span::styled("BackTab ", Style::default().fg(Theme::ACCENT)),
         Span::styled("Prev  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("c ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Copy  ", Style::default().fg(Theme::TEXT_MUTED)),
         Span::styled("q ", Style::default().fg(Theme::ACCENT)),
         Span::styled("Quit", Style::default().fg(Theme::TEXT_MUTED)),
     ])).style(Style::default().bg(Theme::BG_SURFACE));

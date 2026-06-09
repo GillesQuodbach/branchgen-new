@@ -11,6 +11,7 @@ pub struct AppState {
     pub history_scroll_limitation: usize,
     pub git_message: Option<String>,
     pub result_selected_line: usize,
+    pub history_selected_line: usize,
 }
 
 #[derive(PartialEq)]

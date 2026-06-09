@@ -22,7 +22,8 @@ pub enum Action {
     NextTab,
     PrevTab,
     HistoryLoaded(usize),
-    CopyLineToClipboard,
+    CopyLineFromResults,
+    CopyLineFromHistory,
 }
 
 fn compute_history_total(len: usize) -> usize {
@@ -38,8 +39,8 @@ pub fn update(state: &mut AppState, action: Action) {
         Action::MoveUp => {
             match state.step {
                 Step::History => {
-                    if state.history_scroll > 0 {
-                        state.history_scroll -= 1;
+                    if state.history_selected_line > 0 {
+                        state.history_selected_line -= 1;
                     }
                 }
                 Step::ShowResults => {
@@ -59,8 +60,8 @@ pub fn update(state: &mut AppState, action: Action) {
         Action::MoveDown => {
             match state.step {
                 Step::History => {
-                    if state.history_scroll < state.history_scroll_limitation {
-                        state.history_scroll += 1;
+                    if state.history_selected_line < state.history_scroll_limitation {
+                        state.history_selected_line += 1;
                     }
                 }
                 Step::ShowResults => {
@@ -231,12 +232,30 @@ pub fn update(state: &mut AppState, action: Action) {
             state.history_scroll = 0;
         }
 
-        Action::CopyLineToClipboard => {
+        Action::CopyLineFromResults => {
             if let Some(result) = &state.result {
                 let text = match state.result_selected_line {
                     0 => &result.branch,
                     1 => &result.commit,
                     _ => &result.pr_title,
+                };
+                let _ = cli_clipboard::set_contents(text.clone());
+                state.git_message = Some(format!("✓ Copied: {}", text));
+            }
+        }
+        Action::CopyLineFromHistory => {
+            let history = load_history().unwrap_or_default();
+            if history.is_empty(){return}
+            let line_per_entry = 5;
+            let entry_index = state.history_selected_line / line_per_entry;
+            let line_in_entry = state.history_selected_line % line_per_entry;
+            if let Some(entry) = &history.get(entry_index) {
+                let text = match line_in_entry {
+                    0 => entry.date.clone(),
+                    1 => entry.branch.clone(),
+                    2 => entry.commit.clone(),
+                    3 => entry.pr_title.clone(),
+                    _ => return,
                 };
                 let _ = cli_clipboard::set_contents(text.clone());
                 state.git_message = Some(format!("✓ Copied: {}", text));
