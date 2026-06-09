@@ -92,8 +92,22 @@ pub fn handle_key(key: KeyEvent, step: &Step) -> Action {
         KeyCode::Backspace      => Action::Backspace,
         KeyCode::Delete         => Action::Delete,
         KeyCode::Char(c)   => Action::InputCharacter(c),
-        KeyCode::Tab            => Action::NextTab,
-        KeyCode::BackTab        => Action::PrevTab,
+        KeyCode::Tab            => tab_action(),
+        KeyCode::BackTab        => backtab_action(),
         _                       => Action::None,
     }
+}
+
+fn tab_action() -> Action {
+    #[cfg(target_os = "windows")]
+    return Action::PrevTab;
+    #[cfg(not(target_os = "windows"))]
+    return Action::NextTab;
+}
+
+fn backtab_action() -> Action {
+    #[cfg(target_os = "windows")]
+    return Action::NextTab;
+    #[cfg(not(target_os = "windows"))]
+    return Action::PrevTab;
 }
