@@ -1,3 +1,4 @@
+use std::time::Instant;
 use indexmap::IndexMap;
 use crate::config::AppConfig;
 
@@ -10,6 +11,7 @@ pub struct AppState {
     pub history_scroll: usize,
     pub history_scroll_limitation: usize,
     pub git_message: Option<String>,
+    pub git_message_time: Option<Instant>,
     pub result_selected_line: usize,
     pub history_selected_line: usize,
 }

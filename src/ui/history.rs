@@ -78,9 +78,9 @@ pub fn render_history(frame: &mut Frame, state: &AppState) {
         &mut scrollbar_state,
     );
 
-    let status = Paragraph::new(Line::from(vec![
+    let default_status = Paragraph::new(Line::from(vec![
         Span::styled(" ↑↓ ", Style::default().fg(Theme::ACCENT)),
-        Span::styled("Scroll  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("Navigate  ", Style::default().fg(Theme::TEXT_MUTED)),
         Span::styled("Tab ", Style::default().fg(Theme::ACCENT)),
         Span::styled("Next  ", Style::default().fg(Theme::TEXT_MUTED)),
         Span::styled("BackTab ", Style::default().fg(Theme::ACCENT)),
@@ -90,5 +90,24 @@ pub fn render_history(frame: &mut Frame, state: &AppState) {
         Span::styled("q ", Style::default().fg(Theme::ACCENT)),
         Span::styled("Quit", Style::default().fg(Theme::TEXT_MUTED)),
     ])).style(Style::default().bg(Theme::BG_SURFACE));
+
+    let show_message = state.git_message_time
+        .map(|t| t.elapsed().as_secs() < 2)
+        .unwrap_or(false);
+
+    let status = if show_message {
+        match &state.git_message {
+            Some(msg) if msg.starts_with('✓') => Paragraph::new(
+                Span::styled(format!(" {}", msg), Style::default().fg(Theme::GREEN))
+            ).style(Style::default().bg(Theme::BG_SURFACE)),
+            Some(msg) => Paragraph::new(
+                Span::styled(format!(" {}", msg), Style::default().fg(Theme::AMBER))
+            ).style(Style::default().bg(Theme::BG_SURFACE)),
+            None => default_status,
+        }
+    } else {
+        default_status
+    };
+
     frame.render_widget(status, status_area);
 }

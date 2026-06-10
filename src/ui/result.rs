@@ -45,37 +45,36 @@ pub fn render_results(frame: &mut Frame, state: &AppState) {
         frame.render_widget(text, content_area);
     }
 
-    let (status_text, status_color) = match &state.git_message {
-        Some(msg) if msg.starts_with('✓') => (msg.as_str(), Theme::GREEN),
-        Some(msg) if msg.starts_with('✗') => (msg.as_str(), Theme::AMBER),
-        Some(msg) => (msg.as_str(), Theme::TEXT_MUTED),
-        None => (" ↑↓ Select  c Copy  b Branch  Enter Save  Tab Next  q Quit", Theme::TEXT_MUTED),
+    let default_status = Paragraph::new(Line::from(vec![
+        Span::styled(" ↑↓ ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Navigate  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("Tab ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Next  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("BackTab ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Prev  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("c ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Copy  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("q ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Quit", Style::default().fg(Theme::TEXT_MUTED)),
+    ])).style(Style::default().bg(Theme::BG_SURFACE));
+
+    let show_message = state.git_message_time
+        .map(|t| t.elapsed().as_secs() < 2)
+        .unwrap_or(false);
+
+    let status = if show_message {
+        match &state.git_message {
+            Some(msg) if msg.starts_with('✓') => Paragraph::new(
+                Span::styled(format!(" {}", msg), Style::default().fg(Theme::GREEN))
+            ).style(Style::default().bg(Theme::BG_SURFACE)),
+            Some(msg) => Paragraph::new(
+                Span::styled(format!(" {}", msg), Style::default().fg(Theme::AMBER))
+            ).style(Style::default().bg(Theme::BG_SURFACE)),
+            None => default_status,
+        }
+    } else {
+        default_status
     };
 
-    let status = match &state.git_message {
-        Some(msg) if msg.starts_with('✓') => Paragraph::new(
-            Span::styled(format!(" {}", msg), Style::default().fg(Theme::GREEN).bg(Theme::BG_SURFACE))
-        ),
-        Some(msg) if msg.starts_with('✗') => Paragraph::new(
-            Span::styled(format!(" {}", msg), Style::default().fg(Theme::AMBER).bg(Theme::BG_SURFACE))
-        ),
-        Some(msg) => Paragraph::new(
-            Span::styled(format!(" {}", msg), Style::default().fg(Theme::TEXT_MUTED).bg(Theme::BG_SURFACE))
-        ),
-        None => Paragraph::new(Line::from(vec![
-            Span::styled(" ↑↓ ", Style::default().fg(Theme::ACCENT)),
-            Span::styled("Select  ", Style::default().fg(Theme::TEXT_MUTED)),
-            Span::styled("c ", Style::default().fg(Theme::ACCENT)),
-            Span::styled("Copy  ", Style::default().fg(Theme::TEXT_MUTED)),
-            Span::styled("b ", Style::default().fg(Theme::ACCENT)),
-            Span::styled("Branch  ", Style::default().fg(Theme::TEXT_MUTED)),
-            Span::styled("Enter ", Style::default().fg(Theme::ACCENT)),
-            Span::styled("Save  ", Style::default().fg(Theme::TEXT_MUTED)),
-            Span::styled("Tab ", Style::default().fg(Theme::ACCENT)),
-            Span::styled("Next  ", Style::default().fg(Theme::TEXT_MUTED)),
-            Span::styled("q ", Style::default().fg(Theme::ACCENT)),
-            Span::styled("Quit", Style::default().fg(Theme::TEXT_MUTED)),
-        ])).style(Style::default().bg(Theme::BG_SURFACE)),
-    };
     frame.render_widget(status, status_area);
 }

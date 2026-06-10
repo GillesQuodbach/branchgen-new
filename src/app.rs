@@ -1,11 +1,13 @@
 use std::io::stdout;
+use std::time::Duration;
 use crate::config::{AppConfig, FieldType};
 use crate::error::AppError;
 use crate::state::{AppState, FormState, Step};
-use crossterm::{execute, terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}};
+use crossterm::{event, execute, terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
 use indexmap::IndexMap;
 use ratatui::{Terminal, backend::CrosstermBackend };
+
 use crate::actions::{update, Action};
 use crate::ui;
 
@@ -40,6 +42,7 @@ impl App {
                 history_scroll: 0,
                 history_scroll_limitation: 0,
                 git_message: None,
+                git_message_time: None,
                 result_selected_line: 0,
                 history_selected_line: 0,
             }
@@ -60,7 +63,7 @@ impl App {
         loop {
             terminal.draw(|f| { ui::render(f, &self.state)
             })?;
-
+            if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = crossterm::event::read()? {
                 // Windows envoie Press + Release, on filtre pour n'avoir que Press
                 // sinon bug de navigation
@@ -68,7 +71,7 @@ impl App {
                 let action = handle_key(key, &self.state.step);
                 update(&mut self.state, action);
                 }
-            }
+            }}
 
             if self.state.should_quit {
                 break;

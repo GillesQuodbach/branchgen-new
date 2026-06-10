@@ -1,3 +1,4 @@
+use std::time::Instant;
 use chrono::Local;
 use crate::config::FieldType;
 use crate::generator::generate_result;
@@ -163,8 +164,14 @@ pub fn update(state: &mut AppState, action: Action) {
         Action::CreateBranch => {
             if let Some(result) = &state.result {
                 match create_branch(&result.branch) {
-                    Ok(_)  => state.git_message = Some(format!("✓ Branch '{}' created", result.branch)),
-                    Err(e) => state.git_message = Some(format!("✗ Error: {}", e)),
+                    Ok(_)  => { 
+                        state.git_message = Some(format!("✓ Branch '{}' created", result.branch)); 
+                        state.git_message_time = Some(Instant::now());
+                    },
+                    Err(e) => { 
+                        state.git_message = Some(format!("✗ Error: {}", e));
+                        state.git_message_time = Some(Instant::now());
+                    },
                 }
             }
         }
@@ -241,6 +248,7 @@ pub fn update(state: &mut AppState, action: Action) {
                 };
                 let _ = cli_clipboard::set_contents(text.clone());
                 state.git_message = Some(format!("✓ Copied: {}", text));
+                state.git_message_time = Some(Instant::now());
             }
         }
         Action::CopyLineFromHistory => {
@@ -259,6 +267,7 @@ pub fn update(state: &mut AppState, action: Action) {
                 };
                 let _ = cli_clipboard::set_contents(text.clone());
                 state.git_message = Some(format!("✓ Copied: {}", text));
+                state.git_message_time = Some(Instant::now());
             }
         }
 
