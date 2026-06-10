@@ -1,4 +1,4 @@
-# branch-gen-new
+# branch-gen
 
 A TUI application for generating Git branch names, commit messages, and PR titles from user inputs. Built with Rust and ratatui.
 
@@ -18,7 +18,7 @@ A TUI application for generating Git branch names, commit messages, and PR title
 
 ```bash
 git clone <your-repo-url>
-cd branch-gen-new
+cd branch-gen
 cargo install --path .
 ```
 
