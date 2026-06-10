@@ -19,6 +19,10 @@ pub struct FieldConfig {
     pub field_type: FieldType,
     pub required: bool,
     pub values: Option<Vec<String>>,
+    #[serde(default)]
+    pub normalize: Normalize,
+    #[serde(default)]
+    pub persistent: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -34,6 +38,23 @@ pub enum FieldType {
     Text,
     Select,
     Number
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Normalize {
+    None,
+    Spaces, // space to hyphen
+    Uppercase, // all in lowercase
+    Lowercase, // all in uppercase
+    LowercaseFirstLetter, // first letter in uppercase
+    UppercaseFirstLetter, // first letter in uppercase
+}
+
+impl Default for Normalize {
+    fn default() -> Self {
+        Normalize::None
+    }
 }
 
 #[cfg(test)]

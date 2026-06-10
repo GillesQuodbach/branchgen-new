@@ -16,3 +16,22 @@ pub fn create_branch(branch_name: &str) -> Result<(), AppError> {
 pub fn is_git_repo() -> bool {
     std::path::Path::new(".git").exists()
 }
+
+pub fn branch_exists(branch_name: &str) -> bool {
+    let output = Command::new("git").args(["branch", "--list"]).output();
+
+    match output {
+        Ok(output) => !String::from_utf8_lossy(&output.stdout).trim().is_empty(),
+        Err(_) => false,
+    }
+}
+
+pub fn checkout_branch(branch_name: &str) -> Result<(), AppError> {
+    let output = Command::new("git").args(["checkout", branch_name]).output()?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        let error_msg = String::from_utf8_lossy(&output.stderr).to_string();
+        Err(AppError::Git(error_msg))
+    }
+}
