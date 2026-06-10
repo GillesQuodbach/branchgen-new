@@ -48,6 +48,8 @@ pub fn render_results(frame: &mut Frame, state: &AppState) {
     let default_status = Paragraph::new(Line::from(vec![
         Span::styled(" ↑↓ ", Style::default().fg(Theme::ACCENT)),
         Span::styled("Navigate  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("b ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Create Branch  ", Style::default().fg(Theme::TEXT_MUTED)),
         Span::styled("Tab ", Style::default().fg(Theme::ACCENT)),
         Span::styled("Next  ", Style::default().fg(Theme::TEXT_MUTED)),
         Span::styled("BackTab ", Style::default().fg(Theme::ACCENT)),
@@ -58,17 +60,23 @@ pub fn render_results(frame: &mut Frame, state: &AppState) {
         Span::styled("Quit", Style::default().fg(Theme::TEXT_MUTED)),
     ])).style(Style::default().bg(Theme::BG_SURFACE));
 
+    let show_error = state.form_error.is_some()&& state.git_message_time
+        .map(|t| t.elapsed().as_secs() < 2)
+        .unwrap_or(false);
+
     let show_message = state.git_message_time
         .map(|t| t.elapsed().as_secs() < 2)
         .unwrap_or(false);
 
-    let status = if show_message {
+    let status = if show_error {
+        Paragraph::new(Span::styled(
+            format!(" {}", state.form_error.as_deref().unwrap_or("")),
+            Style::default().fg(Theme::ERROR),
+        )).style(Style::default().bg(Theme::BG_SURFACE))
+    } else if show_message {
         match &state.git_message {
-            Some(msg) if msg.starts_with('✓') => Paragraph::new(
-                Span::styled(format!(" {}", msg), Style::default().fg(Theme::GREEN))
-            ).style(Style::default().bg(Theme::BG_SURFACE)),
             Some(msg) => Paragraph::new(
-                Span::styled(format!(" {}", msg), Style::default().fg(Theme::AMBER))
+                Span::styled(format!(" {}", msg), Style::default().fg(Theme::GREEN))
             ).style(Style::default().bg(Theme::BG_SURFACE)),
             None => default_status,
         }

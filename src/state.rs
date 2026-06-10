@@ -5,6 +5,7 @@ use crate::config::AppConfig;
 pub struct AppState {
     pub step: Step,
     pub form: FormState,
+    pub form_error: Option<String>,
     pub result: Option<GeneratedResult>,
     pub config: AppConfig,
     pub should_quit: bool,

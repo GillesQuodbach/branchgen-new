@@ -18,6 +18,7 @@ impl Theme {
     pub const AMBER:      Color = Color::Rgb(239, 159, 39);
     pub const HISTORY_BRANCH: Color = Color::Rgb(56, 189, 248);
     pub const HISTORY_COMMIT: Color = Color::Rgb(232, 121, 249);
+    pub const ERROR: Color = Color::Rgb(224, 75, 74);
 }
 pub fn base_layout(frame: &mut Frame) -> (Rect, Rect, Rect) {
     // fond global

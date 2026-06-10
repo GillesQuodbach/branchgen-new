@@ -4,12 +4,12 @@ use crate::config::{AppConfig, FieldType};
 use crate::error::AppError;
 use crate::state::{AppState, FormState, Step};
 use crossterm::{event, execute, terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}};
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use indexmap::IndexMap;
 use ratatui::{Terminal, backend::CrosstermBackend };
 
 use crate::actions::{update, Action};
-use crate::ui;
+use crate::{storage, ui};
 
 pub struct App {
     pub state: AppState,
@@ -17,13 +17,23 @@ pub struct App {
 
 impl App {
     pub fn new(config: AppConfig) -> Self {
+        let persistent_data = storage::load_persistent();
         let mut user_inputs = IndexMap::new();
+
         for field in &config.fields {
             if field.field_type == FieldType::Select {
                 if let Some(values) = &field.values{
                     if let Some(first) = values.first(){
                         user_inputs.insert(field.key.clone(), first.clone());
                     }
+                }
+            }
+        }
+
+        for field in &config.fields {
+            if field.persistent {
+                if let Some(value) = persistent_data.get(&field.key){
+                    user_inputs.insert(field.key.clone(), value.clone());
                 }
             }
         }
@@ -36,6 +46,7 @@ impl App {
                     select_input_position: 0,
                     cursor_position: 0,
                 },
+                form_error: None,
                 result: None,
                 config,
                 should_quit: false,
@@ -89,15 +100,21 @@ impl App {
 
 pub fn handle_key(key: KeyEvent, step: &Step) -> Action {
     match key.code {
+        KeyCode::Char('b') if *step == Step::History => Action::CreateBranchFromHistory,
+        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Quit,
         KeyCode::Char('q')      => Action::Quit,
         KeyCode::Char('b') if *step == Step::ShowResults        => Action::CreateBranch,
         KeyCode::Char('c') if *step == Step::ShowResults        => Action::CopyLineFromResults,
-        KeyCode::Char('c') if *step == Step::History        => Action::CopyLineFromHistory,
+        KeyCode::Char('c') if *step == Step::History            => Action::CopyLineFromHistory,
+        KeyCode::Char('r') if key.modifiers.contains(KeyModifiers::CONTROL)
+        && *step == Step::FillFields
+        => Action::ResetForm,
         KeyCode::Up             => Action::MoveUp,
         KeyCode::Down           => Action::MoveDown,
         KeyCode::Left           => Action::MoveLeft,
         KeyCode::Right          => Action::MoveRight,
         KeyCode::Enter          => Action::Enter,
+        KeyCode::Enter if *step == Step::History => Action::CheckoutFromHistory,
         KeyCode::Backspace      => Action::Backspace,
         KeyCode::Delete         => Action::Delete,
         KeyCode::Char(c)   => Action::InputCharacter(c),

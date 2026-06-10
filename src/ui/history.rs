@@ -87,6 +87,10 @@ pub fn render_history(frame: &mut Frame, state: &AppState) {
         Span::styled("Prev  ", Style::default().fg(Theme::TEXT_MUTED)),
         Span::styled("c ", Style::default().fg(Theme::ACCENT)),
         Span::styled("Copy  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("Enter ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Checkout  ", Style::default().fg(Theme::TEXT_MUTED)),
+        Span::styled("b ", Style::default().fg(Theme::ACCENT)),
+        Span::styled("Create  ", Style::default().fg(Theme::TEXT_MUTED)),
         Span::styled("q ", Style::default().fg(Theme::ACCENT)),
         Span::styled("Quit", Style::default().fg(Theme::TEXT_MUTED)),
     ])).style(Style::default().bg(Theme::BG_SURFACE));

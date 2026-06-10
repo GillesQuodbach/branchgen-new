@@ -1,10 +1,11 @@
 use std::time::Instant;
 use chrono::Local;
+use indexmap::IndexMap;
 use crate::config::FieldType;
 use crate::generator::generate_result;
-use crate::git::create_branch;
+use crate::git::{branch_exists, checkout_branch, create_branch};
 use crate::state::{AppState, Step};
-use crate::storage::{load_history, save_history, History};
+use crate::storage::{load_history, save_history, save_persistent, History};
 
 pub enum Action {
     Quit,
@@ -25,6 +26,9 @@ pub enum Action {
     HistoryLoaded(usize),
     CopyLineFromResults,
     CopyLineFromHistory,
+    ResetForm,
+    CheckoutFromHistory,
+    CreateBranchFromHistory,
 }
 
 fn compute_history_total(len: usize) -> usize {
@@ -87,7 +91,7 @@ pub fn update(state: &mut AppState, action: Action) {
             match field.field_type {
                 FieldType::Select => {
                     let len = field.values.as_ref().map(|v| v.len()).unwrap_or(0);
-                    state.form.select_input_position = (state.form.select_input_position + 1) % len;
+                    state.form.select_input_position = (state.form.select_input_position - 1) % len;
                     let value = field.values.as_ref().unwrap()[state.form.select_input_position].clone();
                     state.form.user_inputs.insert(field.key.clone(), value);
                 }
@@ -102,7 +106,7 @@ pub fn update(state: &mut AppState, action: Action) {
                 match field.field_type {
                     FieldType::Select => {
                         let len = field.values.as_ref().map(|v| v.len()).unwrap_or(0);
-                        state.form.select_input_position = (state.form.select_input_position + len - 1) % len;
+                        state.form.select_input_position = (state.form.select_input_position + len + 1) % len;
                         let value = field.values.as_ref().unwrap()[state.form.select_input_position].clone();
                         state.form.user_inputs.insert(field.key.clone(), value);
                     }
@@ -133,14 +137,21 @@ pub fn update(state: &mut AppState, action: Action) {
                         value.push(character);
                     }
                 }
+                if field.persistent {
+                    save_persistent_fields(state);
+                }
             }
         }
 
         Action::Backspace => {
             if state.form.selected_field < state.config.fields.len() {
                 let key = &state.config.fields[state.form.selected_field].key;
+                let field = &state.config.fields[state.form.selected_field];
                 if let Some(value) = state.form.user_inputs.get_mut(key) {
                     value.pop();
+                }
+                if field.persistent {
+                    save_persistent_fields(state);
                 }
             }
         }
@@ -148,16 +159,20 @@ pub fn update(state: &mut AppState, action: Action) {
         Action::Delete => {
             if state.form.selected_field < state.config.fields.len() {
                 let key = &state.config.fields[state.form.selected_field].key;
+                let field = &state.config.fields[state.form.selected_field];
                 if let Some(value) = state.form.user_inputs.get_mut(key) {
                     if state.form.cursor_position < value.len() {
                         value.remove(state.form.cursor_position);
                     }
                 }
+                if field.persistent {
+                    save_persistent_fields(state);
+                }
             }
         }
 
         Action::Generate => {
-            let result = generate_result(&state.form, &state.config.formats);
+            let result = generate_result(&state.form, &state.config.formats, &state.config.fields);
             state.result = Some(result);
         }
 
@@ -185,20 +200,38 @@ pub fn update(state: &mut AppState, action: Action) {
                 Step::FillFields => {
                     let last_field = state.config.fields.len();
                     if state.form.selected_field == last_field {
-                        let result = generate_result(&state.form, &state.config.formats);
-                        let date = Local::now().format("%d-%m-%Y").to_string();
-                        let entry = History {
-                            date,
-                            branch: result.branch.clone(),
-                            commit: result.commit.clone(),
-                            pr_title: result.pr_title.clone(),
-                        };
-                        let _ = save_history(&entry);
-                        let history = load_history().unwrap_or_default();
-                        state.history_scroll_limitation = compute_history_total(history.len());
-                        state.history_scroll = 0;
-                        state.result = Some(result);
-                        state.step = Step::ShowResults;
+                        let missing: Vec<String> = state.config.fields
+                            .iter()
+                            .filter(|f| f.required)
+                            .filter(|f| {
+                                state.form.user_inputs
+                                    .get(&f.key)
+                                    .map(|v| v.trim().is_empty())
+                                    .unwrap_or(true)
+                            })
+                            .map(|f| f.label.clone())
+                            .collect();
+
+                        if missing.is_empty() {
+                            state.form_error = None;
+                            let result = generate_result(&state.form, &state.config.formats, &state.config.fields);
+                            let date = Local::now().format("%d-%m-%Y").to_string();
+                            let entry = History {
+                                date,
+                                branch: result.branch.clone(),
+                                commit: result.commit.clone(),
+                                pr_title: result.pr_title.clone(),
+                            };
+                            let _ = save_history(&entry);
+                            let history = load_history().unwrap_or_default();
+                            state.history_scroll_limitation = compute_history_total(history.len());
+                            state.history_scroll = 0;
+                            state.result = Some(result);
+                            state.step = Step::ShowResults;
+                        } else {
+                            state.form_error = Some(format!("✗ Required: {}", missing.join(", ")));
+                            state.git_message_time = Some(Instant::now());
+                        }
                     } else {
                         state.form.selected_field += 1;
                         state.form.cursor_position = 0;
@@ -271,6 +304,97 @@ pub fn update(state: &mut AppState, action: Action) {
             }
         }
 
+        Action::ResetForm => {
+            state.form.selected_field = 0;
+            state.form.cursor_position = 0;
+            state.form.select_input_position = 0;
+            state.form.user_inputs.clear();
+            state.form_error = None;
+
+            for field in &state.config.fields {
+                if field.field_type == FieldType::Select {
+                    if let Some(values) = &field.values {
+                        if let Some(first) = values.first() {
+                            state.form.user_inputs.insert(field.key.clone(), first.clone());
+                        }
+                    }
+                }
+                if field.persistent {
+                    let persistent_data = crate::storage::load_persistent();
+                    if let Some(value) = persistent_data.get(&field.key){
+                        state.form.user_inputs.insert(field.key.clone(), value.clone());
+                    }
+                }
+            }
+            state.git_message = Some("✓ Form reset".to_string());
+            state.git_message_time = Some(Instant::now());
+        }
+
+        Action::CheckoutFromHistory => {
+            let history = load_history().unwrap_or_default();
+            if history.is_empty(){return}
+
+            let lines_per_entry = 5;
+            let entry_index = state.history_selected_line / lines_per_entry;
+            let line_in_entry = state.history_selected_line % lines_per_entry;
+
+                if line_in_entry == 1 {
+                    if let Some(entry) = history.get(entry_index) {
+
+                        match checkout_branch(&entry.branch) {
+                            Ok(_) => {
+                                state.git_message = Some(format!("✓ Switch to '{}'", entry.branch));
+                                state.git_message_time = Some(Instant::now());
+                            }
+                            Err(e) => {
+                                state.git_message = Some(format!("✗ Error: {}", e));
+                                state.git_message_time = Some(Instant::now());
+                            }
+                        }
+                    }
+                } else {
+                    state.git_message = Some("✗ Select a branch line first".to_string());
+                    state.git_message_time = Some(Instant::now());
+                }
+        }
+        Action::CreateBranchFromHistory => {
+            let history = load_history().unwrap_or_default();
+            if history.is_empty() { return; }
+            let lines_per_entry = 5;
+            let entry_index = state.history_selected_line / lines_per_entry;
+            let line_in_entry = state.history_selected_line % lines_per_entry;
+            if line_in_entry == 1 {
+                if let Some(entry) = history.get(entry_index) {
+                    match create_branch(&entry.branch) {
+                        Ok(_) => {
+                            state.git_message = Some(format!("✓ Branch '{}' created", entry.branch));
+                            state.git_message_time = Some(Instant::now());
+                        }
+                        Err(e) => {
+                            state.git_message = Some(format!("✗ Error: {}", e));
+                            state.git_message_time = Some(Instant::now());
+                        }
+                    }
+                }
+            } else {
+                state.git_message = Some("✗ Select a branch line first".to_string());
+                state.git_message_time = Some(Instant::now());
+            }
+        }
+
+
+
         Action::None => {}
     }
+}
+
+fn save_persistent_fields(state: &AppState) {
+    let persistent_data: IndexMap<String, String> = state.config.fields
+        .iter()
+        .filter(|f| f.persistent)
+        .filter_map(|f| {
+            state.form.user_inputs.get(&f.key)
+                .map(|v| (f.key.clone(), v.clone()))
+        }).collect();
+    let _ = save_persistent(&persistent_data);
 }
